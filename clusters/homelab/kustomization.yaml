@@ -6,7 +6,3 @@ resources:
   - ../../platform/cert-manager
   - ../../platform/argocd
   - ../../platform/reloader
-  - ../../apps/postgres
-  - ../../apps/minio
-  - ../../apps/mail-relay-postfix
-  - ../../apps/argocd-apps

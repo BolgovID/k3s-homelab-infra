@@ -5,3 +5,6 @@ resources:
   - gitlab/application.yaml
   - gitlab-runner/application.yaml
   - redis/application.yaml
+  - postgres/application.yaml
+  - minio/application.yaml
+  - mail-relay-postfix/application.yaml

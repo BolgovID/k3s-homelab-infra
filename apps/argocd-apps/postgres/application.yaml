@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: postgres
+  namespace: argo-cd
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: homelab
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/BolgovID/k3s-homelab-infra.git
+    targetRevision: main
+    path: apps/postgres
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: psql
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
