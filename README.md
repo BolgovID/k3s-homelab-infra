@@ -172,4 +172,3 @@ kubectl get ingress -A
 - Health probes and resource requests/limits added where applicable
 - Secret templates separated from application manifests
 - Kustomize used as a single deployment interface
-- Legacy files isolated to `legacy/` to avoid accidental use
