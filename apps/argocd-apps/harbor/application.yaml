@@ -1,0 +1,131 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: harbor
+  namespace: argo-cd
+  labels:
+    app.kubernetes.io/name: harbor
+    app.kubernetes.io/part-of: homelab
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://charts.bitnami.com/bitnami
+    chart: harbor
+    targetRevision: 19.6.0
+    helm:
+      values: |
+        externalURL: https://registry.xulihaxlab.org
+        logLevel: info
+        ipFamily:
+          ipv6:
+            enabled: false
+        exposureType: ingress
+
+        ingress:
+          core:
+            ingressClassName: traefik
+            hostname: registry.xulihaxlab.org
+            annotations:
+              cert-manager.io/cluster-issuer: letsencrypt-cloudflare
+            tls: true
+
+        persistence:
+          enabled: true
+          resourcePolicy: keep
+          persistentVolumeClaim:
+            registry:
+              accessModes:
+                - ReadWriteOnce
+              size: 30Gi
+            jobservice:
+              accessModes:
+                - ReadWriteOnce
+              size: 1Gi
+            trivy:
+              accessModes:
+                - ReadWriteOnce
+              size: 1Gi
+          imageChartStorage:
+            type: filesystem
+
+        volumePermissions:
+          enabled: true
+          image:
+            repository: bitnamilegacy/os-shell
+
+        portal:
+          image:
+            repository: bitnamilegacy/harbor-portal
+          networkPolicy:
+            enabled: false
+
+        core:
+          image:
+            repository: bitnamilegacy/harbor-core
+          secret: "managed-via-harbor-internal-secret"
+          existingEnvVarsSecret: harbor-core-envvars
+          networkPolicy:
+            enabled: false
+
+        jobservice:
+          image:
+            repository: bitnamilegacy/harbor-jobservice
+          secret: "managed-via-harbor-internal-secret"
+          networkPolicy:
+            enabled: false
+
+        registry:
+          server:
+            image:
+              repository: bitnamilegacy/harbor-registry
+          controller:
+            image:
+              repository: bitnamilegacy/harbor-registryctl
+          networkPolicy:
+            enabled: false
+
+        trivy:
+          image:
+            repository: bitnamilegacy/harbor-adapter-trivy
+          networkPolicy:
+            enabled: false
+
+        exporter:
+          image:
+            repository: bitnamilegacy/harbor-exporter
+          networkPolicy:
+            enabled: false
+
+        postgresql:
+          enabled: false
+
+        externalDatabase:
+          host: postgres-np.psql.svc
+          port: 5432
+          user: xulihax
+          password: "managed-via-postgres-password"
+          sslmode: disable
+          coreDatabase: harbor
+
+        redis:
+          enabled: false
+
+        externalRedis:
+          host: redis-master.redis.svc
+          port: 6379
+          password: "managed-via-redis-password"
+          coreDatabaseIndex: "0"
+          jobserviceDatabaseIndex: "1"
+          registryDatabaseIndex: "2"
+          trivyAdapterDatabaseIndex: "5"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: harbor
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

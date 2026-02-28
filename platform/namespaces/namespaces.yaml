@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argo-cd
+  labels:
+    app.kubernetes.io/part-of: homelab
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: harbor
+  labels:
+    app.kubernetes.io/part-of: homelab
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gitlab
+  labels:
+    app.kubernetes.io/part-of: homelab
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: minio
+  labels:
+    app.kubernetes.io/part-of: homelab
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mail
+  labels:
+    app.kubernetes.io/part-of: homelab
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: psql
+  labels:
+    app.kubernetes.io/part-of: homelab
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: redis
+  labels:
+    app.kubernetes.io/part-of: homelab

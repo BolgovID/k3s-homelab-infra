@@ -1,0 +1,97 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gitlab-runner
+  namespace: argo-cd
+  labels:
+    app.kubernetes.io/name: gitlab-runner
+    app.kubernetes.io/part-of: homelab
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://charts.gitlab.io
+    chart: gitlab-runner
+    targetRevision: 0.62.1
+    helm:
+      values: |
+        imagePullPolicy: IfNotPresent
+        revisionHistoryLimit: 3
+        gitlabUrl: http://gitlab-webservice-default.gitlab.svc:8181/
+        concurrent: 5
+        checkInterval: 30
+        probeTimeoutSeconds: 10
+        terminationGracePeriodSeconds: 3600
+        replicas: 1
+        logLevel: info
+        logFormat: json
+        unregisterRunners: true
+
+        sessionServer:
+          enabled: false
+
+        rbac:
+          create: true
+          clusterWideAccess: false
+          podSecurityPolicy:
+            enabled: false
+          rules:
+            - resources: ["pods", "secrets", "configmaps"]
+              verbs: ["get", "list", "watch", "create", "patch", "delete", "update"]
+            - apiGroups: [""]
+              resources: ["pods/exec", "pods/attach"]
+              verbs: ["create", "patch", "delete"]
+
+        metrics:
+          enabled: false
+        service:
+          enabled: false
+
+        runners:
+          executor: kubernetes
+          secret: dev-gitlab-runner
+          cache:
+            secretName: dev-gitlab-runner
+          config: |
+            [[runners]]
+              output_limit = 10000
+              clone_url = "http://gitlab-webservice-default.gitlab.svc:8181"
+              [runners.kubernetes]
+                image = "ubuntu:22.04"
+                helper_image = "registry.gitlab.com/gitlab-org/gitlab-runner/gitlab-runner-helper:arm64-v16.9.1"
+                [[runners.kubernetes.host_aliases]]
+                  ip = "192.168.1.131"
+                  hostnames = ["gitlab.xulihaxlab.org", "registry.xulihaxlab.org"]
+              [runners.cache]
+                Type = "s3"
+                Path = ""
+                Shared = true
+                [runners.cache.s3]
+                  ServerAddress = "minio.minio.svc:9000"
+                  BucketName = "dev-runner-cache"
+                  BucketLocation = "us-east-1"
+                  Insecure = true
+                  AuthenticationType = "access-key"
+
+        securityContext:
+          runAsUser: 100
+        podSecurityContext:
+          fsGroup: 65533
+
+        resources:
+          limits:
+            memory: 2048Mi
+            cpu: "2"
+          requests:
+            memory: 128Mi
+            cpu: 100m
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: gitlab
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

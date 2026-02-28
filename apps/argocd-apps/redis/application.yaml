@@ -1,0 +1,41 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: redis
+  namespace: argo-cd
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/part-of: homelab
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: registry-1.docker.io/bitnamicharts
+    chart: redis
+    targetRevision: 18.12.1
+    helm:
+      values: |
+        architecture: replication
+        auth:
+          enabled: true
+          existingSecret: redis-auth
+          existingSecretPasswordKey: redis-password
+        replica:
+          replicaCount: 1
+          persistence:
+            enabled: true
+        master:
+          persistence:
+            enabled: true
+        image:
+          tag: latest
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: redis
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

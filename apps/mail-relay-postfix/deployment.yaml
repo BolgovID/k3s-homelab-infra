@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postfix-relay
+  namespace: mail
+  labels:
+    app.kubernetes.io/name: postfix-relay
+    app.kubernetes.io/component: mail
+    app.kubernetes.io/part-of: homelab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postfix-relay
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postfix-relay
+        app.kubernetes.io/component: mail
+        app.kubernetes.io/part-of: homelab
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: postfix
+          image: docker.io/boky/postfix:v4.4.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: submission
+              containerPort: 587
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: postfix-relay-config
+            - secretRef:
+                name: postfix-relay-auth
+                optional: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            tcpSocket:
+              port: submission
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket:
+              port: submission
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 6

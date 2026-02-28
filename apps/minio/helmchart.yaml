@@ -1,0 +1,39 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: minio
+  namespace: minio
+  labels:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/part-of: homelab
+spec:
+  repo: https://charts.min.io/
+  chart: minio
+  version: 5.4.0
+  targetNamespace: minio
+  valuesContent: |-
+    mode: distributed
+    existingSecret: minio-root-user
+    tls:
+      enabled: false
+    replicas: 1
+    pools: 1
+    drivesPerNode: 4
+    persistence:
+      enabled: true
+      size: 20Gi
+    resources:
+      requests:
+        memory: 512Mi
+    consoleIngress:
+      enabled: true
+      ingressClassName: traefik
+      path: /
+      hosts:
+        - minio.xulihaxlab.org
+      annotations:
+        cert-manager.io/cluster-issuer: letsencrypt-cloudflare
+      tls:
+        - secretName: minio-console-tls
+          hosts:
+            - minio.xulihaxlab.org

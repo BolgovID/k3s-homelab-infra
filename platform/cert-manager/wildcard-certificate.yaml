@@ -1,0 +1,15 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: wildcard-xulihaxlab-org
+  namespace: default
+  labels:
+    app.kubernetes.io/part-of: homelab
+spec:
+  secretName: wildcard-xulihaxlab-org-tls
+  issuerRef:
+    name: letsencrypt-cloudflare
+    kind: ClusterIssuer
+  dnsNames:
+    - xulihaxlab.org
+    - '*.xulihaxlab.org'

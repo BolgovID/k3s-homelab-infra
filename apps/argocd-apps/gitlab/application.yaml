@@ -1,0 +1,249 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gitlab
+  namespace: argo-cd
+  labels:
+    app.kubernetes.io/name: gitlab
+    app.kubernetes.io/part-of: homelab
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://charts.gitlab.io
+    chart: gitlab
+    targetRevision: 9.9.1
+    helm:
+      values: |
+        installCertmanager: false
+        postgresql:
+          install: false
+        redis:
+          install: false
+        prometheus:
+          install: false
+        nginx-ingress:
+          enabled: false
+        gitlab-runner:
+          install: false
+        registry:
+          enabled: false
+        upgradeCheck:
+          enabled: false
+        extraVolumes: |
+          - name: host-jemalloc
+            hostPath:
+              path: /usr/lib/aarch64-linux-gnu
+              type: Directory
+        extraVolumeMounts: |
+          - name: host-jemalloc
+            mountPath: /opt/hostlib/libjemalloc.so.2
+            subPath: libjemalloc.so.2
+            readOnly: true
+        global:
+          edition: ce
+          extraEnv:
+            LD_LIBRARY_PATH: /opt/hostlib:/usr/lib/aarch64-linux-gnu:/lib/aarch64-linux-gnu
+          minio:
+            enabled: false
+          registry:
+            enabled: false
+          initialRootPassword:
+            key: password
+            secret: initial-admin-password
+          redis:
+            auth:
+              enabled: true
+              secret: gitlab-redis
+              key: redis-password
+            host: redis-master.redis.svc
+            port: 6379
+
+          psql:
+            host: postgres-np.psql.svc
+            port: 5432
+            database: gitlab
+            username: xulihax
+            password:
+              useSecret: true
+              secret: postgres-secret
+              key: password
+
+          ingress:
+            configureCertmanager: false
+            class: traefik
+            annotations:
+              cert-manager.io/cluster-issuer: letsencrypt-cloudflare
+              cert-manager.io/subject-organizations: "home dev lab"
+              cert-manager.io/subject-countries: "UA"
+              cert-manager.io/subject-localities: "Kyiv"
+              cert-manager.io/duration: "9125h"
+              cert-manager.io/renew-before: "360h"
+              cert-manager.io/usages: "server auth"
+              cert-manager.io/private-key-algorithm: RSA
+              cert-manager.io/private-key-encoding: "PKCS8"
+              cert-manager.io/private-key-size: "4096"
+              cert-manager.io/private-key-rotation-policy: Always
+            tls:
+              enabled: true
+
+          hosts:
+            domain: xulihaxlab.org
+            https: true
+            externalIP: 192.168.1.131
+
+          appConfig:
+            lfs:
+              bucket: gitlab-lfs-storage
+              connection:
+                secret: minio-credentials
+                key: connection
+            artifacts:
+              bucket: gitlab-artifacts-storage
+              connection:
+                secret: minio-credentials
+                key: connection
+            uploads:
+              bucket: gitlab-uploads-storage
+              connection:
+                secret: minio-credentials
+                key: connection
+            packages:
+              bucket: gitlab-packages-storage
+              connection:
+                secret: minio-credentials
+                key: connection
+            cron_jobs:
+              expire_build_artifacts_worker:
+                cron: "*/7 * * * *"
+              repository_check_worker:
+                cron: "20 * * * *"
+              repository_archive_cache_worker:
+                cron: "0 * * * *"
+            backups:
+              bucket: gitlab-backup-storage
+              tmpBucket: gitlab-tmp-storage
+
+          smtp:
+            enabled: true
+            tls: false
+            starttls_auto: false
+            openssl_verify_mode: "none"
+            domain: "git.xulihaxlab.org"
+            address: smtp-relay.mail.svc.cluster.local
+            port: 587
+            authentication: "none"
+            password:
+              secret: fake-mail-password
+              key: password
+          email:
+            from: "noreply@git.xulihaxlab.org"
+            display_name: "GitLab xulihaxlab.org"
+
+        gitlab:
+          webservice:
+            minReplicas: 1
+            maxReplicas: 1
+            workerProcesses: 1
+            resources:
+              requests:
+                cpu: 150m
+                memory: 1024M
+            extraVolumes: |
+              - name: host-jemalloc
+                hostPath:
+                  path: /usr/lib/aarch64-linux-gnu
+                  type: Directory
+            extraVolumeMounts: |
+              - name: host-jemalloc
+                mountPath: /opt/hostlib/libjemalloc.so.2
+                subPath: libjemalloc.so.2
+                readOnly: true
+            ingress:
+              annotations:
+                cert-manager.io/common-name: gitlab.xulihaxlab.org
+              tls:
+                secretName: gitlab-tls
+          sidekiq:
+            resources:
+              requests:
+                cpu: 300m
+                memory: 1G
+            pods:
+              - name: all-in-1
+                minReplicas: 1
+                maxReplicas: 1
+                concurrency: 10
+                extraVolumes: |
+                  - name: host-jemalloc
+                    hostPath:
+                      path: /usr/lib/aarch64-linux-gnu
+                      type: Directory
+                extraVolumeMounts: |
+                  - name: host-jemalloc
+                    mountPath: /opt/hostlib/libjemalloc.so.2
+                    subPath: libjemalloc.so.2
+                    readOnly: true
+          kas:
+            minReplicas: 1
+            maxReplicas: 1
+            ingress:
+              annotations:
+                cert-manager.io/common-name: kas.xulihaxlab.org
+              tls:
+                secretName: kas-tls
+          gitlab-shell:
+            minReplicas: 1
+            maxReplicas: 1
+          toolbox:
+            extraVolumes: |
+              - name: host-jemalloc
+                hostPath:
+                  path: /usr/lib/aarch64-linux-gnu
+                  type: Directory
+            extraVolumeMounts: |
+              - name: host-jemalloc
+                mountPath: /opt/hostlib/libjemalloc.so.2
+                subPath: libjemalloc.so.2
+                readOnly: true
+            backups:
+              objectStorage:
+                config:
+                  secret: s3-credentials
+                  key: config
+          migrations:
+            extraVolumes: |
+              - name: host-jemalloc
+                hostPath:
+                  path: /usr/lib/aarch64-linux-gnu
+                  type: Directory
+            extraVolumeMounts: |
+              - name: host-jemalloc
+                mountPath: /opt/hostlib/libjemalloc.so.2
+                subPath: libjemalloc.so.2
+                readOnly: true
+          gitaly:
+            persistence:
+              size: 50Gi
+          gitlab-exporter:
+            enabled: true
+            extraVolumes: |
+              - name: host-jemalloc
+                hostPath:
+                  path: /usr/lib/aarch64-linux-gnu
+                  type: Directory
+            extraVolumeMounts: |
+              - name: host-jemalloc
+                mountPath: /opt/hostlib/libjemalloc.so.2
+                subPath: libjemalloc.so.2
+                readOnly: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: gitlab
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../platform/namespaces
+  - ../../platform/priority-classes
+  - ../../platform/cert-manager
+  - ../../platform/argocd
+  - ../../platform/reloader
+  - ../../apps/postgres
+  - ../../apps/minio
+  - ../../apps/mail-relay-postfix
+  - ../../apps/argocd-apps

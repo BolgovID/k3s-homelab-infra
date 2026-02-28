@@ -1,0 +1,5 @@
+# Local secret manifests generated from templates
+secrets/live/*.yaml
+
+# macOS
+.DS_Store

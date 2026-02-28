@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pgadmin
+  namespace: psql
+  labels:
+    app.kubernetes.io/name: pgadmin
+    app.kubernetes.io/part-of: homelab
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-cloudflare
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: pg.xulihaxlab.org
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: pgadmin-svc
+                port:
+                  name: http
+  tls:
+    - hosts:
+        - pg.xulihaxlab.org
+      secretName: pg-xulihaxlab-org-tls

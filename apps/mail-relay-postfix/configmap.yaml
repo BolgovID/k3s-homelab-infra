@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postfix-relay-config
+  namespace: mail
+  labels:
+    app.kubernetes.io/name: postfix-relay
+    app.kubernetes.io/component: mail
+    app.kubernetes.io/part-of: homelab
+data:
+  TZ: "UTC"
+  # Restrict who can send through this relay.
+  ALLOWED_SENDER_DOMAINS: "xulihaxlab.org"
+  # Set RELAYHOST (and optional credentials) in secret/postfix-relay-auth.
+  POSTFIX_smtp_tls_security_level: "encrypt"
+  SMTP_SERVER_HOSTNAME: "smtp-relay.mail.svc.cluster.local"
